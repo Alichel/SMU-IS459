@@ -9,14 +9,21 @@ from itemadapter import ItemAdapter
 import pymongo
 
 
-class KiasuparentPipeline:
+from scrapy.utils.project import get_project_settings
+settings = get_project_settings() 
+from scrapy.exceptions import DropItem
+import logging
+
+class HardwarezonePipeline:
     def __init__(self):
         connection = pymongo.MongoClient(
-            "localhost",
-            27017
+
+            settings['MONGODB_SERVER'],
+            settings['MONGODB_PORT']
         )
-        db = connection["kiasuparent"]
-        self.collection = db["posts"]
+
+        db = connection[settings['MONGODB_DB']]
+        self.collection = db[settings['MONGODB_COLLECTION']]  
 
     def process_item(self, item, spider):
         valid = True
@@ -24,6 +31,9 @@ class KiasuparentPipeline:
             if not data:
                 valid = False
                 raise DropItem("Missing {0}!".format(data))
+                
         if valid:
             self.collection.insert(dict(item))
+            logging.info("Post added to MongoDB database!")
+            
         return item

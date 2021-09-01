@@ -6,7 +6,8 @@
 import scrapy
 
 
-class KiasuparentItem(scrapy.Item):
+class HardwarezoneItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
+    
     pass

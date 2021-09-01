@@ -1,30 +1,39 @@
 import scrapy
 
 
-class KiasuSpider(scrapy.Spider):
-    name = 'kiasuparent'
+class HWZSpider(scrapy.Spider):
+    name = 'hardwarezone'
 
     start_urls = [
-        # 'https://www.kiasuparents.com/kiasu/forum/viewforum.php?f=5',
         'https://forums.hardwarezone.com.sg/forums/pc-gaming.382/',
     ]
 
     def parse(self, response):
-        for topic_list in response.xpath('//div[has-class("structItemContainer-group js-threadList")]'):
-            for topic in topic_list.xpath('div/div'):
+        
+        trans_table = {ord(c): None for c in u'\r\n\t'}
+        for topic_list in response.xpath('//div[has-class("structItemContainer")]'):
+            for thread in topic_list.xpath('//div[has-class("structItem-cell structItem-cell--main")]'):
+                
                 yield {
-                    # 'topic': topic.xpath('div/a/text()').get(),
-                    'topic': topic.xpath('div[has-class("structItem-title")]/a/text()').get(),
+                    'topic':thread.xpath('div[has-class("structItem-title")]/a/text()').get(),
                 }
-                yield response.follow(topic.xpath('div[has-class("structItem-title")]/a/@href').get(), \
+        
+                yield response.follow(thread.xpath('div[has-class("structItem-title")]/a/@href').get(), \
                     self.parse)
 
-        for post in response.xpath('//div[has-class("message-inner")]'):
+        for post in response.xpath('//div[has-class("block-body js-replyNewMessageContainer")]'):
             yield {
-                'author': post.xpath('//*[has-class("message-name")]/a/text()').get(),
-                'content': post.xpath('//div[has-class("bbWrapper")]/text()').get(),
+                # join all author into a single line
+                'author': "; ".join(post.xpath('//*[@class="message-userDetails"]/h4/a/text()').getall()),
+
+                # remove whitespace (\n\t) and join them into a single line
+                'content': "; ".join(s.strip().translate(trans_table) for s in post.xpath('//div[has-class("bbWrapper")]/text()').extract()),
+
             }
 
-        next_page = response.xpath('//li[has-class("pageNav  pageNav--skipEnd")]/a/@href').get()
+        next_page = response.xpath('//div[has-class("pageNavSimple")]/a[has-class("pageNavSimple-el pageNavSimple-el--next")]/@href').get()
         if next_page is not None:
             yield response.follow(next_page, self.parse)
+
+
+
